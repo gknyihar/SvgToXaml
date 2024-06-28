@@ -135,6 +135,8 @@ namespace SvgToXaml.ViewModels
                 File.WriteAllText(outFileName, wrapper);
 
                 BuildBatchFile(outFileName, resKeyInfo, true, postfix);
+
+                Process.Start(Path.GetDirectoryName(outFileName));
             }
         }
 
