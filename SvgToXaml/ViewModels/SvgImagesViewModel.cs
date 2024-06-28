@@ -148,7 +148,8 @@ namespace SvgToXaml.ViewModels
                 var relOutputDir = FileUtils.MakeRelativePath(CurrentDir, PathIs.Folder, outputdir, PathIs.Folder);
                 var svgToXamlPath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 var relSvgToXamlPath = FileUtils.MakeRelativePath(CurrentDir, PathIs.Folder, svgToXamlPath, PathIs.File);
-                var batchText = $"{relSvgToXamlPath} BuildDict /inputdir=\".\" /outputdir=\"{relOutputDir}\" /outputname=\"{outputname}\"";
+                var batchText = "chcp 65001"; //UTF-8
+                batchText += $"\r\n\"{relSvgToXamlPath}\" BuildDict /inputdir=\".\" /outputdir=\"{relOutputDir}\" /outputname=\"{outputname}\"";
                 if (isDict)
                     batchText += postfix == null ? " /createResourceDictionary=true" : $" /createResourceDictionary=true /postfix=\"{postfix}\"";
 
