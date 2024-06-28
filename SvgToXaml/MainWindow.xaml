@@ -35,7 +35,10 @@
             <Button DockPanel.Dock="Right" Width="20" Margin="1,3" Command="{Binding InfoCommand}" TabIndex="2" ToolTip="Info">i</Button>
             <Slider x:Name="Slider" Orientation="Horizontal" DockPanel.Dock="Right" Minimum="16" Maximum="500" Value="96" 
                         LargeChange="8" SmallChange="2" Width="100" VerticalAlignment="Center"/>
-            <Button DockPanel.Dock="Right" Width="20" Margin="1,3" Command="{Binding ExportDirCommand}" TabIndex="2" ToolTip="Export all Svgs to a Xaml">
+            <!--<Button DockPanel.Dock="Right" Width="20" Margin="1,3" Command="{Binding ExportDirCommand}" TabIndex="2" ToolTip="Export all Svgs to a Xaml">
+                <Image Source="{StaticResource SaveDrawingImage}" />
+            </Button>-->
+            <Button DockPanel.Dock="Right" Width="20" Margin="1,3" Command="{Binding ExportResDictCommand}" TabIndex="2" ToolTip="Export all Svgs to a Xaml">
                 <Image Source="{StaticResource SaveDrawingImage}" />
             </Button>
             <Button DockPanel.Dock="Right" Width="20" Margin="1,3" Command="{Binding OpenFolderCommand}" TabIndex="2" ToolTip="Open Folder">...</Button>

@@ -80,13 +80,12 @@ namespace SvgConverter
             else
             {
                 File.WriteAllText(outFileName, ConverterLogic.SvgDirToXaml(inputdir, resKeyInfo, null, filterPixelsPerDip, handleSubFolders));
+                Console.WriteLine("xaml written to: {0}", Path.GetFullPath(outFileName));
             }
-            Console.WriteLine("xaml written to: {0}", Path.GetFullPath(outFileName));
 
             if (buildhtmlfile)
             {
-                var htmlFilePath = Path.Combine(inputdir,
-                    Path.GetFileNameWithoutExtension(outputname));
+                var htmlFilePath = Path.Combine(outputdir ?? inputdir, Path.GetFileNameWithoutExtension(outputname));
                 var files = ConverterLogic.SvgFilesFromFolder(inputdir);
                 BuildHtmlBrowseFile(files, htmlFilePath);
             }
@@ -119,7 +118,7 @@ namespace SvgConverter
                     new XElement("br"),
                     files.Select(
                     f => new XElement("img",
-                        new XAttribute("src", Path.GetFileName(f) ?? ""),
+                        new XAttribute("src", Path.GetFullPath(f)),
                         new XAttribute("title", Path.GetFileNameWithoutExtension(f) ?? ""),
                         new XAttribute("height", size),
                         new XAttribute("width", size)

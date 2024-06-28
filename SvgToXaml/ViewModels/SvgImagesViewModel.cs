@@ -27,10 +27,11 @@ namespace SvgToXaml.ViewModels
             OpenFileCommand = new DelegateCommand(OpenFileExecute);
             OpenFolderCommand = new DelegateCommand(OpenFolderExecute);
             ExportDirCommand = new DelegateCommand(ExportDirExecute);
+            ExportResDictCommand = new DelegateCommand(ExportResDictExecute);
             InfoCommand = new DelegateCommand(InfoExecute);
 
             ContextMenuCommands = new ObservableCollection<Tuple<object, ICommand>>();
-            ContextMenuCommands.Add(new Tuple<object, ICommand>("Open Explorer", new DelegateCommand<string>(OpenExplorerExecute))); 
+            ContextMenuCommands.Add(new Tuple<object, ICommand>("Open Explorer", new DelegateCommand<string>(OpenExplorerExecute)));
         }
 
         private void OpenFolderExecute()
@@ -51,8 +52,8 @@ namespace SvgToXaml.ViewModels
 
         private void ExportDirExecute()
         {
-            string outFileName = Path.GetFileNameWithoutExtension(CurrentDir) + ".xaml"; 
-            var saveDlg = new SaveFileDialog {AddExtension = true, DefaultExt = ".xaml", Filter = "Xaml-File|*.xaml", InitialDirectory = CurrentDir, FileName = outFileName};
+            string outFileName = Path.GetFileNameWithoutExtension(CurrentDir) + ".xaml";
+            var saveDlg = new SaveFileDialog { AddExtension = true, DefaultExt = ".xaml", Filter = "Xaml-File|*.xaml", InitialDirectory = CurrentDir, FileName = outFileName };
             if (saveDlg.ShowDialog() == DialogResult.OK)
             {
                 string namePrefix = null;
@@ -91,17 +92,65 @@ namespace SvgToXaml.ViewModels
             }
         }
 
-        private void BuildBatchFile(string outFileName, ResKeyInfo compResKeyInfo)
+        private void ExportResDictExecute()
         {
-            if (MessageBox.Show(outFileName + "\nhas been written\nCreate a BatchFile to automate next time?",
-                null, MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
+            string outFileName = Path.GetFileNameWithoutExtension(CurrentDir) + ".xaml";
+            var saveDlg = new SaveFileDialog { AddExtension = true, DefaultExt = ".xaml", Filter = "Xaml-File|*.xaml", InitialDirectory = CurrentDir, FileName = outFileName };
+            if (saveDlg.ShowDialog() == DialogResult.OK)
+            {
+                bool useComponentResKeys = false;
+
+                outFileName = Path.GetFullPath(saveDlg.FileName);
+                var resKeyInfo = new ResKeyInfo
+                {
+                    XamlName = Path.GetFileNameWithoutExtension(outFileName),
+                    Prefix = null,
+                    UseComponentResKeys = useComponentResKeys,
+                    NameSpace = null,
+                    NameSpaceName = null,
+
+                };
+
+                var postfix = Path.GetFileNameWithoutExtension(outFileName);
+                var postfixFirstChar = char.ToUpperInvariant(postfix[0]);
+                postfix = postfixFirstChar + postfix.Substring(1, postfix.Last() == 's' ? postfix.Length - 2 : postfix.Length - 1);
+
+                postfix = Microsoft.VisualBasic.Interaction.InputBox("Enter a postfix (or leave empty to not use it)", "Postfix", postfix);
+                if (string.IsNullOrWhiteSpace(postfix))
+                    postfix = null;
+
+                var folder = Path.GetFileNameWithoutExtension(outFileName);
+                var absoluteFolder = Path.Combine(Path.GetDirectoryName(outFileName), folder);
+                if (!Directory.Exists(absoluteFolder))
+                {
+                    Directory.CreateDirectory(absoluteFolder);
+                }
+                var dict = ConverterLogic.SvgDirToXamlDicts(CurrentDir, resKeyInfo, null, false, false, postfix);
+                foreach (var d in dict)
+                {
+                    var dictFileName = Path.Combine(absoluteFolder, $"{d.Key}.xaml");
+                    File.WriteAllText(dictFileName, d.Value);
+                }
+                var wrapper = ConverterLogic.WrapperFileFromList(dict, folder);
+                File.WriteAllText(outFileName, wrapper);
+
+                BuildBatchFile(outFileName, resKeyInfo, true, postfix);
+            }
+        }
+
+        private void BuildBatchFile(string outFileName, ResKeyInfo compResKeyInfo, bool isDict = false, string postfix = null)
+        {
+            if (MessageBox.Show(outFileName + " has been written\nCreate a BatchFile to automate next time?",
+                "Batch", MessageBoxButton.YesNoCancel) == MessageBoxResult.Yes)
             {
                 var outputname = Path.GetFileNameWithoutExtension(outFileName);
                 var outputdir = Path.GetDirectoryName(outFileName);
                 var relOutputDir = FileUtils.MakeRelativePath(CurrentDir, PathIs.Folder, outputdir, PathIs.Folder);
-                var svgToXamlPath =System.Reflection.Assembly.GetEntryAssembly().Location;
+                var svgToXamlPath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 var relSvgToXamlPath = FileUtils.MakeRelativePath(CurrentDir, PathIs.Folder, svgToXamlPath, PathIs.File);
-                var batchText = $"{relSvgToXamlPath} BuildDict /inputdir \".\" /outputdir \"{relOutputDir}\" /outputname {outputname}";
+                var batchText = $"{relSvgToXamlPath} BuildDict /inputdir=\".\" /outputdir=\"{relOutputDir}\" /outputname=\"{outputname}\"";
+                if (isDict)
+                    batchText += postfix == null ? " /createResourceDictionary=true" : $" /createResourceDictionary=true /postfix=\"{postfix}\"";
 
                 if (compResKeyInfo.UseComponentResKeys)
                 {
@@ -193,6 +242,7 @@ namespace SvgToXaml.ViewModels
         public ICommand OpenFolderCommand { get; set; }
         public ICommand OpenFileCommand { get; set; }
         public ICommand ExportDirCommand { get; set; }
+        public ICommand ExportResDictCommand { get; set; }
         public ICommand InfoCommand { get; set; }
 
         public ObservableCollection<Tuple<object, ICommand>> ContextMenuCommands { get; set; }
@@ -205,9 +255,9 @@ namespace SvgToXaml.ViewModels
 
             var graphicFiles = GetFilesMulti(folder, GraphicImageViewModel.SupportedFormats);
             var graphicImages = graphicFiles.Select(f => new GraphicImageViewModel(f));
-            
-            var allImages = svgImages.Concat<ImageBaseViewModel>(graphicImages).OrderBy(e=>e.Filepath);
-            
+
+            var allImages = svgImages.Concat<ImageBaseViewModel>(graphicImages).OrderBy(e => e.Filepath);
+
             Images.AddRange(allImages);
         }
 
