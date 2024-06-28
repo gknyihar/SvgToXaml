@@ -31,7 +31,11 @@ namespace SvgConverter
             [ArgumentParam(DefaultValue = false, ExplicitNeeded = false, LongDesc = "If true, PixelsPerDip is filtered to ensure compatibility for < 4.6.2, default: false")]
             bool filterPixelsPerDip = false,
             [ArgumentParam(DefaultValue = false, ExplicitNeeded = false, LongDesc = "Recursive goes through inputdir subfolders")]
-            bool handleSubFolders = false
+            bool handleSubFolders = false,
+            [ArgumentParam(DefaultValue = false, ExplicitNeeded = false, LongDesc = "Create resource dictionary instead")]
+            bool createResourceDictionary = false,
+            [ArgumentParam(DefaultValue = null, ExplicitNeeded = false, LongDesc = "Postfix of drawing image keys")]
+            string postfix = null
             )
         {
             Console.WriteLine("Building resource dictionary...");
@@ -49,7 +53,34 @@ namespace SvgConverter
                 NameSpaceName = compResKeyNSName,
             };
 
-            File.WriteAllText(outFileName, ConverterLogic.SvgDirToXaml(inputdir, resKeyInfo, null, filterPixelsPerDip, handleSubFolders));
+            if (createResourceDictionary)
+            {
+                var folder = outputname;
+                if (Path.HasExtension(folder))
+                {
+                    folder = Path.ChangeExtension(folder, "");
+                }
+                var absoluteFolder = Path.Combine(outputdir ?? inputdir, folder);
+                if (!Directory.Exists(absoluteFolder))
+                {
+                    Directory.CreateDirectory(absoluteFolder);
+                }
+                var dict = ConverterLogic.SvgDirToXamlDicts(inputdir, resKeyInfo, null, filterPixelsPerDip, handleSubFolders, postfix);
+                foreach (var d in dict)
+                {
+                    var dictFileName = Path.Combine(absoluteFolder, $"{d.Key}.xaml");
+                    File.WriteAllText(dictFileName, d.Value);
+                    Console.WriteLine("xaml written to: {0}", Path.GetFullPath(dictFileName));
+                }
+                var wrapper = ConverterLogic.WrapperFileFromList(dict, folder);
+                var wrapperPath = Path.Combine(outputdir ?? inputdir, $"{folder}.xaml");
+                File.WriteAllText(wrapperPath, wrapper);
+                Console.WriteLine("xaml written to: {0}", Path.GetFullPath(wrapperPath));
+            }
+            else
+            {
+                File.WriteAllText(outFileName, ConverterLogic.SvgDirToXaml(inputdir, resKeyInfo, null, filterPixelsPerDip, handleSubFolders));
+            }
             Console.WriteLine("xaml written to: {0}", Path.GetFullPath(outFileName));
 
             if (buildhtmlfile)
